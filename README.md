@@ -179,9 +179,101 @@ echo "nameserver 8.8.8.8" > /etc/resolv.conf
 
 **Answer:**
 
+Untuk node Yan dan Victoria:
+
+1. Download `kea-dhcp4` server
+
+```bash
+apk update
+apk add kea-dhcp4
 ```
-put your answer here (and screenshot)
+
+2. Edit konfigurasi file kea-dhcp di `/etc/kea/kea-dhcp4.conf` pada Victoria:
+
+```conf
+{
+  "Dhcp4": {
+    "interfaces-config": {
+      "interfaces": ["eth0"]
+    },
+    "lease-database": {
+      "type": "memfile",
+      "persist": true,
+      "name": "/var/lib/kea/kea-leases4.csv"
+    },
+    "valid-lifetime": 3600,
+    "max-valid-lifetime": 7200,
+    "subnet4": [
+      {
+        "id": 1,
+        "subnet": "10.127.3.0/24",
+        "pools": [
+          { "pool": "10.127.3.100 - 10.127.3.120" }
+        ],
+        "option-data": [
+          { "name": "routers", "data": "10.127.3.1" },
+          { "name": "domain-name-servers", "data": "8.8.8.8" }
+        ]
+      }
+    ]
+  }
+}
 ```
+
+3. Edit file konfigurasi pada Yan juga. Untuk bagian mac Laterano bisa dicek pada Laterano menggunakan `ip link show eth0`:
+
+```conf
+{
+  "Dhcp4": {
+    "interfaces-config": {
+      "interfaces": ["eth0"]
+    },
+    "lease-database": {
+      "type": "memfile",
+      "persist": true,
+      "name": "/var/lib/kea/kea-leases4.csv"
+    },
+    "valid-lifetime": 3600,
+    "max-valid-lifetime": 7200,
+    "subnet4": [
+      {
+        "id": 1,
+        "subnet": "10.127.4.0/24",
+        "pools": [
+          { "pool": "10.127.4.50 - 10.127.4.60" }
+        ],
+        "option-data": [
+          { "name": "routers", "data": "10.127.4.1" },
+          { "name": "domain-name-servers", "data": "8.8.8.8" }
+        ],
+        "reservations": [
+          { "hw-address": "02:42:48:c5:8e:00", "ip-address": "10.127.4.15" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+4. Cek file konfigurasi dengan `kea-dhcp4 -t /etc/kea/kea-dhcp4.conf`
+5. Buat direktori yang dibutuhkan kea:
+
+```bash
+mkdir -p /var/lib/kea /run/kea
+```
+
+6. Run Kea dhcp di foreground
+
+```bash
+kea-dhcp4 -d -c /etc/kea/kea-dhcp4.conf
+```
+
+<div align="center">
+  <img src="./docs/A.3.4/columbia-dhcp-ip.png" width="600px"> <br />
+  <p>Columbia mendapatkan ip dan nameserver</p> <br />
+  <img src="./docs/A.3.4/laterano-dhcp-ip.png" width="600px"> <br />
+  <p>Laterano mendapatkan ip dan nameserver</p><br />
+</div>
 
 #### Soal A.3.5 - HTTP Server pada Laterano
 
@@ -191,9 +283,48 @@ put your answer here (and screenshot)
 
 **Answer:**
 
+Untuk node Yan dan Laterano:
+
+1. Install python3
+
+```bash
+apk update
+apk add python3
 ```
-put your answer here (and screenshot)
+
+Untuk node Laterano:
+
+2. Buat konfigurasi web server python3
+
+```bash
+mkdir -p /root/myscripts
+cat << 'EOF' > /root/myscripts/start_http.sh
+#!/bin/sh
+python -m http.server 9999 -d /root/myscripts/myweb
+EOF
+chmod +x /root/myscripts/start_http.sh
 ```
+
+3. Buat berkas uji di `/root/myscripts/myweb`:
+
+```bash
+mkdir -p /root/myscripts/myweb
+cd /root/myscripts/myweb
+dd if=/dev/random of=tes1000.bin  bs=1    count=1000
+dd if=/dev/random of=tes10000.bin bs=10   count=1000
+dd if=/dev/random of=tes50000.bin bs=50   count=1000
+dd if=/dev/random of=tes5M.bin    bs=5000 count=1000
+cd /root
+```
+
+4. Jalankan server dengan `/root/myscripts/start_http.sh`.
+
+<div align="center">
+  <img src="./docs/A.3.5/laterano-term.png" width="600px"> <br />
+  <p>Laterano membuat file bin dan run server http</p> <br />
+  <img src="./docs/A.3.5/laterano-web-server.png" width="600px"> <br />
+  <p>Test laterano http server lewat Columbia</p><br />
+</div>
 
 #### Soal A.3.6 - Verifikasi Awal dari Columbia
 
@@ -203,9 +334,10 @@ put your answer here (and screenshot)
 
 **Answer:**
 
-```
-put your answer here (and screenshot)
-```
+<div align="center">
+  <img src="./docs/A.3.5/laterano-term.png" width="600px"> <br />
+  <p>Laterano membuat file bin dan run server http</p> <br />
+</div>
 
 ## Problem A.4 - Three-Way Handshake
 
@@ -223,10 +355,15 @@ put your answer here (and screenshot)
 **Answer:**
 
 ```
-Prediksi saya: ...
+Prediksi saya: sequence number packet SYN akan dimulai dari 0
 
 put screenshot of tc qdisc show eth1 / eth2 here
 ```
+
+<div align="center">
+  <img src="./docs/A.3.5/laterano-term.png" width="600px"> <br />
+  <p>Tidak ada rule pada RhodesIsland eth1 dan eth2</p> <br />
+</div>
 
 #### Soal A.4.2 - Tabel Observasi Three-Way Handshake
 
@@ -239,18 +376,18 @@ put screenshot of tc qdisc show eth1 / eth2 here
 >
 > _Fill in the following table based on the Wireshark capture._
 
-| No  | Parameter/Aspek                                                                                                | Field Wireshark                  | Instruksi / _Instruction_                                                                                                                                                                                                                                                                                                                                                | Jawaban & Screenshot                                                                                                                       |
-| --- | -------------------------------------------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1   | IP sumber dan tujuan<br>_Source and destination IP_                                                            | `ip.src`, `ip.dst`               | Pastikan koneksi terjadi antara client (pengirim request) dan server (penerima request).<br>_Make sure the connection is between the client (request sender) and the server (request receiver)._                                                                                                                                                                         | put your answer here (and screenshot)                                                                                                      |
-| 2   | Proses handshake (3 paket awal)<br>_Handshake process (first 3 packets)_                                       | `tcp.flags.syn`, `tcp.flags.ack` | Amati tiga paket pertama: SYN → SYN-ACK → ACK.<br>_Observe the first three packets: SYN → SYN-ACK → ACK._                                                                                                                                                                                                                                                                | put your answer here (and screenshot)                                                                                                      |
-| 3   | Prediksi vs aktual: sequence number awal client<br>_Predicted vs actual: client's initial sequence number_     | `tcp.seq` (SYN)                  | Bandingkan prediksi sebelum capture dengan nilai aktual, jelaskan mengapa ISN acak, bukan nol.<br>_Compare your prediction before the capture with the actual value, and explain why the ISN is random, not zero._                                                                                                                                                       | put your answer here (and screenshot)                                                                                                      |
-| 4   | Sequence number awal server<br>_Server's initial sequence number_                                              | `tcp.seq` (SYN-ACK)              | Tunjukkan byte awal dari sisi server.<br>_Show the initial byte on the server side._                                                                                                                                                                                                                                                                                     | put your answer here (and screenshot)                                                                                                      |
-| 5   | ACK setelah handshake<br>_ACK after the handshake_                                                             | `tcp.ack`                        | Tunjukkan bahwa client mengonfirmasi SYN-ACK dari server.<br>_Show that the client acknowledges the server's SYN-ACK._                                                                                                                                                                                                                                                   | put your answer here (and screenshot)                                                                                                      |
-| 6   | Verifikasi SEQ segmen berikutnya = SEQ + panjang payload<br>_Verify next segment's SEQ = SEQ + payload length_ | `tcp.seq`, `tcp.len`             | Pilih satu segmen data di tengah stream (bukan segmen pertama atau terakhir), lalu buktikan secara manual bahwa segmen berikutnya memiliki `tcp.seq` = `tcp.seq` + `tcp.len` segmen ini.<br>_Choose a data segment in the middle of the stream (not the first or last), then manually prove that the next segment has `tcp.seq` = this segment's `tcp.seq` + `tcp.len`._ | `tcp.seq` segmen ini: ...<br>`tcp.len` segmen ini: ...<br>`tcp.seq` berikutnya: ...<br>Perhitungan: ... + ... = ...<br>put screenshot here |
-| 7   | Pola ACK penerima<br>_Receiver's ACK pattern_                                                                  | `tcp.ack`                        | Tunjukkan bahwa ACK bertambah kumulatif, menandakan data diterima secara berurutan.<br>_Show that ACKs increase cumulatively, indicating that data is received in order._                                                                                                                                                                                                | put your answer here (and screenshot)                                                                                                      |
-| 8   | RTT rata-rata dan implikasinya terhadap timer<br>_Average RTT and its effect on the timer_                     | `tcp.analysis.ack_rtt`           | Catat RTT pada salah satu ACK (di Laterano), lalu diskusikan mengapa timer yang terlalu pendek maupun terlalu panjang sama-sama bermasalah bagi kinerja transfer.<br>_Record the RTT from one ACK (on Laterano), then discuss why a timer that is too short and one that is too long both cause transfer performance problems._                                          | put your answer here (and screenshot)                                                                                                      |
-| 9   | Status retransmisi<br>_Retransmission status_                                                                  | `tcp.analysis.retransmission`    | Semestinya tidak ada retransmisi, menandakan link sehat.<br>_There should be no retransmissions, indicating a healthy link._                                                                                                                                                                                                                                             | put your answer here (and screenshot)                                                                                                      |
-| 10  | Pola penutupan koneksi<br>_Connection closing pattern_                                                         | `tcp.flags.fin`, `tcp.flags.ack` | Tunjukkan bahwa TCP menutup koneksi melalui four-way handshake (FIN/ACK).<br>_Show that TCP closes the connection through a four-way handshake (FIN/ACK)._                                                                                                                                                                                                               | put your answer here (and screenshot)                                                                                                      |
+| No  | Parameter/Aspek                                                                                                | Field Wireshark                  | Instruksi / _Instruction_                                                                                                                                                                                                                                                                                                                                                | Jawaban & Screenshot                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --- | -------------------------------------------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | IP sumber dan tujuan<br>_Source and destination IP_                                                            | `ip.src`, `ip.dst`               | Pastikan koneksi terjadi antara client (pengirim request) dan server (penerima request).<br>_Make sure the connection is between the client (request sender) and the server (request receiver)._                                                                                                                                                                         | ![tes-conn](./docs/A.4.2/test-conn.png) Koneksi client adalah Columbia (10.127.3.100/24) dengan server adalah Laterano (10.127.4.15/24)                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| 2   | Proses handshake (3 paket awal)<br>_Handshake process (first 3 packets)_                                       | `tcp.flags.syn`, `tcp.flags.ack` | Amati tiga paket pertama: SYN → SYN-ACK → ACK.<br>_Observe the first three packets: SYN → SYN-ACK → ACK._                                                                                                                                                                                                                                                                | ![3-way-handshake](./docs/A.4.2/syn-seq-num.png)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 3   | Prediksi vs aktual: sequence number awal client<br>_Predicted vs actual: client's initial sequence number_     | `tcp.seq` (SYN)                  | Bandingkan prediksi sebelum capture dengan nilai aktual, jelaskan mengapa ISN acak, bukan nol.<br>_Compare your prediction before the capture with the actual value, and explain why the ISN is random, not zero._                                                                                                                                                       | ![random-syn](./docs/A.4.2/random-syn-on-columbia.png) Sequence number secara mentah adalah nilai acak. Nilai 0 merupakan relative sequence dan bukan sequence number asli. Pengacakan nomor ini bertujuan untuk keamanan data agar tidak mudah diretas. Jika nilai awal selalu 0 maka peretas dapat dengan mudah mensetting ISN ke 0 dengan ip palsu dan akan dianggap koneksi valid. Selain itu nilai acak juga mencegah duplicate SYN-ACK. Jika semua packet mulai dari SYN bisa saja paket yang datang bukanlah paket yang benar dan malah dianggap koneksi valid |
+| 4   | Sequence number awal server<br>_Server's initial sequence number_                                              | `tcp.seq` (SYN-ACK)              | Tunjukkan byte awal dari sisi server.<br>_Show the initial byte on the server side._                                                                                                                                                                                                                                                                                     | ![server-init-byte](./docs/A.4.2/random-syn-on-columbia.png)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| 5   | ACK setelah handshake<br>_ACK after the handshake_                                                             | `tcp.ack`                        | Tunjukkan bahwa client mengonfirmasi SYN-ACK dari server.<br>_Show that the client acknowledges the server's SYN-ACK._                                                                                                                                                                                                                                                   | ![client-syn-ack-confirm](./docs/A.4.2/syn-ack-confirm-on-client.png)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 6   | Verifikasi SEQ segmen berikutnya = SEQ + panjang payload<br>_Verify next segment's SEQ = SEQ + payload length_ | `tcp.seq`, `tcp.len`             | Pilih satu segmen data di tengah stream (bukan segmen pertama atau terakhir), lalu buktikan secara manual bahwa segmen berikutnya memiliki `tcp.seq` = `tcp.seq` + `tcp.len` segmen ini.<br>_Choose a data segment in the middle of the stream (not the first or last), then manually prove that the next segment has `tcp.seq` = this segment's `tcp.seq` + `tcp.len`._ | `tcp.seq` segmen ini: 4549<br>`tcp.len` segmen ini: 1448<br>`tcp.seq` berikutnya: 5997<br>Perhitungan: 4549 + 1448 = 5997<br> ![segment-exam](./docs/A.4.2/segment-exam.png)                                                                                                                                                                                                                                                                                                                                                                                          |
+| 7   | Pola ACK penerima<br>_Receiver's ACK pattern_                                                                  | `tcp.ack`                        | Tunjukkan bahwa ACK bertambah kumulatif, menandakan data diterima secara berurutan.<br>_Show that ACKs increase cumulatively, indicating that data is received in order._                                                                                                                                                                                                | ![ack-num-increase](./docs/A.4.2/ack-num-increase.png)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| 8   | RTT rata-rata dan implikasinya terhadap timer<br>_Average RTT and its effect on the timer_                     | `tcp.analysis.ack_rtt`           | Catat RTT pada salah satu ACK (di Laterano), lalu diskusikan mengapa timer yang terlalu pendek maupun terlalu panjang sama-sama bermasalah bagi kinerja transfer.<br>_Record the RTT from one ACK (on Laterano), then discuss why a timer that is too short and one that is too long both cause transfer performance problems._                                          | ![rtt-laterano](./docs/A.4.2/rtt-laterano.png) Terdapat selisih yang kecil dan besar pada gambar. Selisih yang kecil menandakan koneksi sangat baik dan traffic sepi. Sedangkan selisih yang besar menandakan koneksi yang melambat dan kemungkinan besar karena traffic yang padat atau terdapat komputasi yang menyebabkan delay                                                                                                                                                                                                                                    |
+| 9   | Status retransmisi<br>_Retransmission status_                                                                  | `tcp.analysis.retransmission`    | Semestinya tidak ada retransmisi, menandakan link sehat.<br>_There should be no retransmissions, indicating a healthy link._                                                                                                                                                                                                                                             | ![no-retransmission](./docs/A.4.2/no-retransmission.png)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| 10  | Pola penutupan koneksi<br>_Connection closing pattern_                                                         | `tcp.flags.fin`, `tcp.flags.ack` | Tunjukkan bahwa TCP menutup koneksi melalui four-way handshake (FIN/ACK).<br>_Show that TCP closes the connection through a four-way handshake (FIN/ACK)._                                                                                                                                                                                                               | ![fin-ack](./docs/A.4.2/fin-ack.png)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 #### A.4.2 - Pertanyaan Analisis / Refleksi
 
