@@ -577,8 +577,24 @@ put screenshot of tc qdisc show eth1 / eth2 here
 
 **Answer:**
 
+```bash
+# del other tc first if exists
+tc qdisc add dev eth1 root netem loss 5%
+tc qdisc add dev eth2 root netem loss 5%
+tc qdisc show dev eth1
+tc qdisc show dev eth2
 ```
-put your answer here (and screenshot)
+
+![](./docs/D.1/1.png)
+
+Lalu di laterano:
+
+```bash
+apk update
+apk add iperf3
+ip tcp_metrics flush
+sysctl -w net.ipv4.tcp_no_metrics_save=1
+iperf3 -s
 ```
 
 #### Soal D.3 - Tabel Hasil Pengujian TCP vs UDP
@@ -592,13 +608,13 @@ put your answer here (and screenshot)
 | Parameter                                                            | TCP                                                              | UDP                                                                         |
 | -------------------------------------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | Command di Columbia<br>_Command on Columbia_                         | `iperf3 -c [IP Prefix].4.15 -t 10`                               | `iperf3 -c [IP Prefix].4.15 -u -b 5M -t 10`                                 |
-| Bitrate/throughput sender                                            |                                                                  |                                                                             |
-| Bitrate/throughput receiver                                          |                                                                  |                                                                             |
-| Retransmission yang dilaporkan<br>_Reported retransmissions_         |                                                                  | Tidak ada retransmission bawaan UDP<br>_UDP has no built-in retransmission_ |
-| Lost / Total Datagrams                                               | Tidak tersedia dalam format TCP<br>_Not available in TCP format_ |                                                                             |
-| Jitter (jika tercantum)<br>_Jitter (if shown)_                       | —                                                                |                                                                             |
+| Bitrate/throughput sender                                            | 8.39 Mbps                                                        | 5 Mbps                                                                      |
+| Bitrate/throughput receiver                                          | 8.28 Mbps                                                        | 4.76 Mbps                                                                   |
+| Retransmission yang dilaporkan<br>_Reported retransmissions_         | 416 Retr                                                         | Tidak ada retransmission bawaan UDP<br>_UDP has no built-in retransmission_ |
+| Lost / Total Datagrams                                               | Tidak tersedia dalam format TCP<br>_Not available in TCP format_ | Receiver lost 213/4317 sender tidak lost                                    |
+| Jitter (jika tercantum)<br>_Jitter (if shown)_                       | —                                                                | 0.210ms pada receiver                                                       |
 | Ringkasan respons terhadap loss<br>_Summary of the response to loss_ |                                                                  |                                                                             |
-| Screenshot output iperf3                                             | put screenshot here                                              | put screenshot here                                                         |
+| Screenshot output iperf3                                             | ![](./docs/D.3/tcp.png)                                          | ![](./docs/D.3/udp.png)                                                     |
 
 #### D.3 - Pertanyaan Analisis / Refleksi
 
@@ -614,7 +630,10 @@ put your answer here (and screenshot)
 **Answer:**
 
 ```
-put your answers here
+1. Karena UDP adalah User Datagram Protocol, menerima dan transmisi data mentah. Server menilai loss datagram dengan melihat nomor urut yang disisipkan pada data dari client ke server. TCP tidak mengalaminya karena setiap loss akan dikirim kembali. Ini membuat UDP akan menyebabkan kerusakan pada data karena ada bagian yang hilang sedangkan pada TCP data dikirim sempurna tidak ada kecacatan.
+2. Karena UDP lebih "ringan" tanpa adanya congestion control. Data bisa dikirim sesuai laju yang diminta walau loss sangat besar akibat perangkat jaringan memiliki buffer terbatas. TCP dirancang agar koneksi optimum dengan memaksimalkan bandwidth tanpa menyebabkan loss yang besar. TCP memiliki congestion control yang salah satunya mengatur speed. Ini sebabnya TCP memiliki kecepatan yang tidak stabil.
+3. Karena adanya congestion control,TCP mengatur traffic data sehingga throughput bisa diturunkan untuk mengatasi masalah traffic ini. Sedangkan UDP tidak ada mekanismenya sehingga hanya asal transmisi data sesuai speed / throughput yang diharapkan.
+4. UDP bagus untuk aplikasi multimedia. Hal ini karena data multimedia kebanyakan bersifat continous dan loss tolerate. Multimedia sangat mudah untuk dikompress dan tidak mudah mengalami kerusakan pada loss data. Kemungkinan besar menghasilkan sedikit artifak digital yang masih bisa ditoleransi jika terjadi data loss.
 ```
 
 ---
@@ -638,7 +657,7 @@ put your answers here
 
 | No  | Parameter/Aspek                                                       | Field Wireshark               | tes1000.bin         | tes10000.bin        | tes5M.bin           |
 | --- | --------------------------------------------------------------------- | ----------------------------- | ------------------- | ------------------- | ------------------- |
-| 1   | Ukuran berkas (B)<br>_File size (B)_                                  | -                             |                     |                     |                     |
+| 1   | Ukuran berkas (B)<br>_File size (B)_                                  | -                             | 1000B               | 10000B              | 5000000B            |
 | 2   | Jumlah total segmen TCP<br>_Total number of TCP segments_             | Statistics Conversations TCP  |                     |                     |                     |
 | 3   | RTT rata-rata (Laterano)<br>_Average RTT (Laterano)_                  | `tcp.analysis.ack_rtt`        |                     |                     |                     |
 | 4   | Throughput (curl)                                                     | `speed_download`              |                     |                     |                     |
