@@ -655,18 +655,20 @@ iperf3 -s
 
 **Tabel Observasi Kondisi Normal**
 
-| No  | Parameter/Aspek                                                       | Field Wireshark               | tes1000.bin         | tes10000.bin        | tes5M.bin           |
-| --- | --------------------------------------------------------------------- | ----------------------------- | ------------------- | ------------------- | ------------------- |
-| 1   | Ukuran berkas (B)<br>_File size (B)_                                  | -                             | 1000B               | 10000B              | 5000000B            |
-| 2   | Jumlah total segmen TCP<br>_Total number of TCP segments_             | Statistics Conversations TCP  |                     |                     |                     |
-| 3   | RTT rata-rata (Laterano)<br>_Average RTT (Laterano)_                  | `tcp.analysis.ack_rtt`        |                     |                     |                     |
-| 4   | Throughput (curl)                                                     | `speed_download`              |                     |                     |                     |
-| 5   | Waktu total transfer (curl)<br>_Total transfer time (curl)_           | `time_total`                  |                     |                     |                     |
-| 6   | Sequence number awal client<br>_Client's initial sequence number_     | `tcp.seq` (SYN)               |                     |                     |                     |
-| 7   | Sequence number awal server<br>_Server's initial sequence number_     | `tcp.seq` (SYN-ACK)           |                     |                     |                     |
-| 8   | Jumlah ACK yang dikirim client<br>_Number of ACKs sent by the client_ | Statistics Endpoints TCP      |                     |                     |                     |
-| 9   | Status retransmisi (Laterano)<br>_Retransmission status (Laterano)_   | `tcp.analysis.retransmission` |                     |                     |                     |
-| 10  | Screenshot                                                            | Wireshark / curl              | put screenshot here | put screenshot here | put screenshot here |
+| No  | Parameter/Aspek                                                       | Field Wireshark               | tes1000.bin                                  | tes10000.bin | tes5M.bin                                                                                          |
+| --- | --------------------------------------------------------------------- | ----------------------------- | -------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------- |
+| 1   | Ukuran berkas (B)<br>_File size (B)_                                  | -                             | 1000B                                        | 10000B       | 5000000B                                                                                           |
+| 2   | Jumlah total segmen TCP<br>_Total number of TCP segments_             | Statistics Conversations TCP  | 13                                           | 22           | 4487                                                                                               |
+| 3   | RTT rata-rata (Laterano)<br>_Average RTT (Laterano)_                  | `tcp.analysis.ack_rtt`        | ~1.3 ms                                      | ~3.3 ms      | ~13 ms                                                                                             |
+| 4   | Throughput (curl)                                                     | `speed_download`              | 301659 B/s                                   | 2113271 B/s  | 7551284 B/s                                                                                        |
+| 5   | Waktu total transfer (curl)<br>_Total transfer time (curl)_           | `time_total`                  | 0.003315s                                    | 0.0043721 s  | 0.662139 s                                                                                         |
+| 6   | Sequence number awal client<br>_Client's initial sequence number_     | `tcp.seq` (SYN)               | 482822485                                    | 4057844839   | 684067108                                                                                          |
+| 7   | Sequence number awal server<br>_Server's initial sequence number_     | `tcp.seq` (SYN-ACK)           | 483513390                                    | 2755423701   | 2121456904                                                                                         |
+| 8   | Jumlah ACK yang dikirim client<br>_Number of ACKs sent by the client_ | Statistics Endpoints TCP      | 4                                            | 9            | 1027                                                                                               |
+| 9   | Status retransmisi (Laterano)<br>_Retransmission status (Laterano)_   | `tcp.analysis.retransmission` | [This frame is a (suspected) retransmission] | -            | [This frame is a (suspected) retransmission] dan [This frame is a (suspected) fast retransmission] |
+
+|
+| 10 | Screenshot | Wireshark / curl | ![](./docs/E/term-1000.png)<br> ![](./docs/E/wireshark-1000.png) | ![](./docs/E/term-10000.png)<br>![](./docs/E/wireshark-10000.png) | ![](./docs/E/term-5m.png)<br>![](./docs/E/wireshark-5m.png) |
 
 #### E.2 - Pertanyaan Kesimpulan
 
@@ -680,5 +682,7 @@ iperf3 -s
 **Answer:**
 
 ```
-put your answers here
+1. Tidak, throughput tidak meningkat proporsional karena TCP mempunyai slow start dan pada file kecil data sudah terkirim semua sebelum speed TCP naik. Pada file besar throughput naik signifikan tidak proporsional karena berkali-kali lipat dari throughput file kecil karena sudah melewati slow start. Untuk jumlah segmen dan RTT meningkat secara proporsional
+2. Parameter sequence number dan retransmission status. Sequence number adalah angka acak dan retransmission status juga acak. Bisa saja status retransmission yang sama muncul karena kondisi jaringan sedang tidak baik.
+3. RTT adalah durasi 1 segmen/packet ditransmisikan lalu di-ack kembali ke sender. Sedangkan download time hanyalah waktu yang dibutuhkan untuk mengambil semua packet secara end to end. Ini bukan berarti total_time adalah akumulasi RTT, karena sender dan receiver bisa berperilaku concurrent mengirim dan menerima data hampir bersamaan dalam satu window.
 ```
