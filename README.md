@@ -11,7 +11,7 @@
 
 #### Put your GNS3 Project files here (gdrive or github upload)!
 
-`Put file URL here`
+![topology](./src/topology.gns3project)
 
 ---
 
